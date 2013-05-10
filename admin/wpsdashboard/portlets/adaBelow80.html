@@ -1,0 +1,46 @@
+<h2>Students with less than 80% ADA this month.</h2>
+<table>
+    <tr class="headerrow">
+        <th>School</th>
+        <th>Last, First</th>
+        <th>Grade</th>
+        <th>Home Room</th>
+        <th>Absences this Month</th>
+        <th>Membership</th>
+        <th>ADA this Month</th>
+    </tr>
+    ~[tlist_sql;
+        SELECT
+            schl.abbreviation,
+            s.dcid,
+            s.lastfirst,
+            s.grade_level,
+            s.home_room,
+            count(CASE WHEN ada.attendancevalue IS NULL OR ada.attendancevalue = 0 THEN 1 END) absences,
+            sum(ada.membershipvalue) membership,
+            to_char(round(sum(ada.attendancevalue)/sum(ada.membershipvalue)*100,2)) || ' %' ADA
+        FROM students s
+        JOIN schools schl ON schl.school_number = s.schoolid
+        JOIN ps_adaadm_defaults_all ada ON ada.studentid = s.id
+        WHERE
+            s.enroll_status =0
+            AND to_char(to_date(ada.calendardate), 'MM-YYYY') = to_char(to_date(current_date), 'MM-YYYY')
+            AND to_date(ada.calendardate) <= to_date(current_date)
+            AND ada.membershipvalue > 0
+            ~[if.is.a.school]AND s.schoolid = ~(curschoolid)[/if]
+        GROUP BY schl.abbreviation, s.dcid, s.lastfirst, s.grade_level, s.home_room
+        HAVING
+            round(sum(ada.attendancevalue)/sum(ada.membershipvalue)*100,2) < 81
+        ORDER BY schl.abbreviation, s.grade_level, s.lastfirst ASC;
+    ]<tr>
+        <td>~(abbreviation)</td>
+        <td><a href="/admin/students/home.html?frn=001~(dcid)&ac=suv;lsp=/admin/students/printatt.html">~(lastfirst)</a></td>
+        <td>~(grade_level)</td>
+        <td>~(home_room)</td>
+        <td>~(absences)</td>
+        <td>~(membership)</td>
+        <td>~(ada)</td>
+    </tr>
+    [/tlist_sql]
+</table>
+<!--test -->
